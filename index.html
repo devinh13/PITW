@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Maryland Recreation</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="trail.js"></script>
+  <script src="fishingPier.js"></script>
+  <script src="kayaking.js"></script>
+  <script src="discGolf.js"></script>
+  <script src="Fishing.js"></script>
+  <script src="mntbike.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #mapid {
+      width: 100%;
+      height: 80vh;
+      border: 1px solid #ccc;
+      margin: 0 auto;
+    }
+
+    #opacity-control {
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #title {
+      text-align: center;
+      font-family: 'Segoe UI', sans-serif;
+      margin-top: 10px;
+    }
+
+    #summaryLabel {
+      text-align: center;
+      font-family: 'Segoe UI', sans-serif;
+      margin-top: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+
+    var map;
+    var selectedLayers = new Set();
+
+    function init() {
+      map = L.map('mapid').setView([38.811262, -77.643521], 8);
+	  
+      var marylandTiles = L.tileLayer('https://geog585-8hdkei.s3.us-east-1.amazonaws.com/Tiles/{z}/{x}/{y}.png',{
+	  opacity: 0.5
+	  });
+  
+      var thunderOSM = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=eb4913812a5c44ddb9e390a0653ad68a');
+thunderOSM.addTo(map);
+ 
+ function onEachFeatureWithTitle(feature, layer) {
+  if (feature.properties && feature.properties.Title) {
+    layer.bindPopup("<b>" + feature.properties.Title + "</b>");
+  }
+}
+
+ function onEachFeatureWithName(feature, layer) {
+  if (feature.properties && feature.properties.Name) {
+    layer.bindPopup("<b>" + feature.properties.Name + "</b>");
+  }
+}
+
+      // Icon definitions
+      var fishingIcon = L.icon({ iconUrl: 'fishing.svg', iconSize: [20, 20] });
+      var frisbeeIcon = L.icon({ iconUrl: 'frisbee.svg', iconSize: [20, 20] });
+      var bikeIcon = L.icon({ iconUrl: 'bicycling.svg', iconSize: [20, 20] });
+      var kayakIcon = L.icon({ iconUrl: 'kayak.svg', iconSize: [20, 20] });
+      var pierIcon = L.icon({ iconUrl: 'fishingpier.svg', iconSize: [20, 20] });
+
+      // Trail style functions
+      function trailUnselectedStyle() {
+        return { color: "#000000", weight: 2, opacity: .8 };
+      }
+
+      function trailSelectedStyle() {
+        return { color: "#0000FF", weight: 3, opacity: 1 };
+      }
+
+      function resetAllSelections() {
+        selectedLayers.forEach(function(layer) {
+          if (trailLayer && trailLayer.resetStyle) {
+            trailLayer.resetStyle(layer);
+          }
+        });
+        selectedLayers.clear();
+      }
+
+      function buildSummaryLabel(currentFeature) {
+        var featureName = currentFeature.properties.name || "Unnamed feature";
+        var featureLength = currentFeature.properties.lengthmiles || 0;
+        let totalLength = 0;
+
+        selectedLayers.forEach(layer => {
+          const props = layer.feature && layer.feature.properties;
+          const len = props && props.lengthmiles;
+          if (!isNaN(len)) totalLength += Number(len);
+        });
+
+        totalLength = totalLength.toFixed(2);
+
+        document.getElementById('summaryLabel').innerHTML =
+          '<p style="font-size:18px"><b>' + featureName + '</b><br>' +
+          featureLength + ' miles<br>' +
+          '<b>Total selected length:</b> ' + totalLength + ' miles</p>';
+      }
+
+      function trailOnEachFeature(feature, layer) {
+        layer.on({
+          click: function(e) {
+            if (e.originalEvent.ctrlKey) {
+              if (selectedLayers.has(layer)) {
+                selectedLayers.delete(layer);
+                layer.setStyle(trailUnselectedStyle());
+              } else {
+                selectedLayers.add(layer);
+                layer.setStyle(trailSelectedStyle());
+              }
+              buildSummaryLabel(feature);
+            } else {
+              resetAllSelections();
+              selectedLayers.add(layer);
+              layer.setStyle(trailSelectedStyle());
+              buildSummaryLabel(feature);
+            }
+            L.DomEvent.stopPropagation(e);
+          }
+        });
+      }
+
+      // Trail layer (always added)
+      var trailLayer = L.geoJSON(trailData, {
+        style: trailUnselectedStyle,
+        onEachFeature: trailOnEachFeature
+      });
+
+      // Icon-based layers (defined but not yet added to map)
+      var fishingLayer = L.geoJSON(fishingData, {
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, { icon: fishingIcon });
+        },
+		onEachFeature: onEachFeatureWithTitle
+      });
+
+      var discGolfLayer = L.geoJSON(discGolfData, {
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, { icon: frisbeeIcon });
+        },
+		onEachFeature: onEachFeatureWithTitle
+      });
+
+      var mntbikeLayer = L.geoJSON(mntbikeData, {
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, { icon: bikeIcon });
+        },
+		onEachFeature: onEachFeatureWithTitle
+      });
+
+      var kayakingLayer = L.geoJSON(kayakingData, {
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, { icon: kayakIcon });
+        },
+		onEachFeature: onEachFeatureWithTitle
+      });
+
+      var fishingPierLayer = L.geoJSON(fishingPierData, {
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, { icon: pierIcon });
+        },
+		onEachFeature: onEachFeatureWithName
+      });
+
+      // Overlay control for toggle box
+      var overlayMaps = {
+		"Maryland" : marylandTiles,
+		"Trails" : trailLayer,
+        "Fishing Access": fishingLayer,
+        "Disc Golf": discGolfLayer,
+        "Mountain Biking": mntbikeLayer,
+        "Kayaking": kayakingLayer,
+        "Fishing Piers": fishingPierLayer
+      };
+
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+	  
+	  
+      // Toggle slider visibility when Maryland layer is toggled
+      map.on('overlayadd', function(e) {
+        if (e.layer === marylandTiles) {
+          document.getElementById('opacity-control').style.display = 'block';
+        }
+      });
+
+      map.on('overlayremove', function(e) {
+        if (e.layer === marylandTiles) {
+          document.getElementById('opacity-control').style.display = 'none';
+        }
+      });
+
+      // Slider updates opacity
+      document.getElementById('opacitySlider').addEventListener('input', function(e) {
+        var value = parseFloat(e.target.value);
+        marylandTiles.setOpacity(value);
+      });
+
+      // Reset selection message on map click
+      map.addEventListener('click', function(e) {
+        resetAllSelections();
+        document.getElementById('summaryLabel').innerHTML =
+          '<p>Click a trail to get more information.</p>';
+      });
+    }
+  </script>
+</head>
+<body onload="init()">
+  <h1 id="title">Maryland Recreation</h1>
+  <div id="mapid"></div>
+  <div id="opacity-control">
+    <label for="opacitySlider">Maryland Layer Opacity:</label><br>
+    <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.5">
+  </div>
+  <div id="summaryLabel">
+    <p>Click a trail to get more information.</p>
+  </div>
+</body>
+</html>
