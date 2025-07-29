@@ -41,8 +41,29 @@
     #summaryLabel {
       text-align: center;
       font-family: 'Segoe UI', sans-serif;
-      margin-top: 10px;
+      margin-top: 20px;
+	  font-weight: bold;
     }
+	
+	#trail-tooltip {
+  position: absolute;
+  z-index: 1001;
+  background: #fff8dc;
+  border: 1px solid #ccc;
+  padding: 10px;
+  max-width: 220px;
+  border-radius: 5px;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  display: none;
+}
+
+#trail-tooltip .close-btn {
+  float: right;
+  cursor: pointer;
+  font-weight: bold;
+}
   </style>
   <script type="text/javascript">
 
@@ -55,6 +76,7 @@
       var marylandTiles = L.tileLayer('https://geog585-8hdkei.s3.us-east-1.amazonaws.com/Tiles/{z}/{x}/{y}.png',{
 	  opacity: 0.5
 	  });
+
   
       var thunderOSM = L.tileLayer('https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=eb4913812a5c44ddb9e390a0653ad68a');
 thunderOSM.addTo(map);
@@ -182,8 +204,8 @@ thunderOSM.addTo(map);
 
       // Overlay control for toggle box
       var overlayMaps = {
-		"Maryland Tiles" : marylandTiles,
-		"Trails" : trailLayer,
+	"Maryland Tiles" : marylandTiles,
+	"Trails" : trailLayer,
         "Fishing Access": fishingLayer,
         "Disc Golf": discGolfLayer,
         "Mountain Biking": mntbikeLayer,
@@ -192,6 +214,22 @@ thunderOSM.addTo(map);
       };
 
       L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+	  
+setTimeout(() => {
+  const labels = document.querySelectorAll('.leaflet-control-layers-overlays label');
+  labels.forEach(label => {
+    if (label.textContent.trim() === 'Trails') {
+      const rect = label.getBoundingClientRect();
+      const tooltip = document.getElementById('trail-tooltip');
+      tooltip.style.left = (rect.right - 250) + 'px';
+      tooltip.style.top = (rect.top + window.scrollY) + 'px';
+      tooltip.style.display = 'block';
+    }
+  });
+}, 500);
+
+      marylandTiles.addTo(map);
+      document.getElementById('opacity-control').style.display = 'block';
 	  
 	  
       // Toggle slider visibility when Maryland layer is toggled
@@ -230,7 +268,13 @@ thunderOSM.addTo(map);
     <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.5">
   </div>
   <div id="summaryLabel">
-    <p>Select the Trails Layer, Click a trail to get more information, CTRL Click to select multiple trails.</p>
+    <p>Trail data will display here.</p>
   </div>
+  <div id="trail-tooltip">
+  <span class="close-btn" onclick="document.getElementById('trail-tooltip').style.display='none';">&times;</span>
+  <strong>Trails Layer Instructions</strong><br>
+  Click a trail to get more information.<br>
+  CTRL+Click to select multiple trails.
+</div>
 </body>
 </html>
